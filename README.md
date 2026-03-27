@@ -15,7 +15,7 @@ https://drive.google.com/file/d/1v6W5WbCCqGfoeZ6tLKyDen9Dm0HXib5r/view?usp=drive
 
 (Add screenshot.png in the root folder)
 
-![App Screenshot](./screenshot.png)
+![App Screenshot](./screenshots.png)
 
 ---
 
