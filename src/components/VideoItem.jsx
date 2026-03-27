@@ -8,6 +8,7 @@ import CommentModal from './CommentModal'
 
 export default function VideoItem({ video, index, isActive, muted, setMuted, setItemRef }) {
   const videoRef = useRef(null)
+  const audioRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [showIcon, setShowIcon] = useState(false)
   const [iconType, setIconType] = useState('play') // 'play' | 'pause'
@@ -32,30 +33,67 @@ export default function VideoItem({ video, index, isActive, muted, setMuted, set
     setLikeCount(c => nowLiked ? c + 1 : c - 1)
   }
 
-  // Play/pause based on visibility — immediate pause to prevent audio bleed
+  // Play/pause based on visibility — controls both video and audio as one unit
   useEffect(() => {
-    const el = videoRef.current
-    if (!el) return
+    const vid = videoRef.current
+    const aud = audioRef.current
+    if (!vid) return
+
     if (isActive) {
-      // Small rAF delay ensures the element is fully in view before playing
+      vid.muted = muted
       const raf = requestAnimationFrame(() => {
-        el.play().then(() => setIsPlaying(true)).catch(() => {})
+        vid.play().then(() => setIsPlaying(true)).catch(() => {})
+        if (aud) {
+          aud.muted = muted
+          if (!muted) {
+            aud.currentTime = vid.currentTime
+            aud.play().catch(() => {})
+          }
+        }
       })
-      return () => cancelAnimationFrame(raf)
+      return () => {
+        // Cancel the pending play — prevents audio restarting after scroll-away
+        cancelAnimationFrame(raf)
+      }
     } else {
-      // Pause immediately — no delay, no async
-      el.pause()
-      el.currentTime = 0
+      // Pause both immediately — no rAF, no delay
+      vid.pause()
+      vid.currentTime = 0
+      if (aud) { aud.pause(); aud.currentTime = 0 }
       setIsPlaying(false)
       setCurrentTime(0)
     }
-  }, [isActive])
+  }, [isActive]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync mute state
+  // Mirror video pause/play events onto audio — covers manual tap-to-pause
+  // and buffering stalls so audio never runs ahead of video
   useEffect(() => {
-    const el = videoRef.current
-    if (el) el.muted = muted
+    const vid = videoRef.current
+    const aud = audioRef.current
+    if (!vid || !aud) return
+    const onPause = () => aud.pause()
+    const onPlay  = () => { if (!muted) aud.play().catch(() => {}) }
+    vid.addEventListener('pause', onPause)
+    vid.addEventListener('play',  onPlay)
+    return () => {
+      vid.removeEventListener('pause', onPause)
+      vid.removeEventListener('play',  onPlay)
+    }
   }, [muted])
+
+  // Keep audio time in sync with video during playback
+  useEffect(() => {
+    const vid = videoRef.current
+    const aud = audioRef.current
+    if (!vid || !aud) return
+    function syncTime() {
+      if (Math.abs(aud.currentTime - vid.currentTime) > 0.3) {
+        aud.currentTime = vid.currentTime
+      }
+    }
+    vid.addEventListener('timeupdate', syncTime)
+    return () => vid.removeEventListener('timeupdate', syncTime)
+  }, [])
 
   const flashIcon = useCallback((type) => {
     setIconType(type)
@@ -149,6 +187,16 @@ export default function VideoItem({ video, index, isActive, muted, setMuted, set
         onPause={() => setIsPlaying(false)}
       />
 
+      {/* Hidden audio element — separate track synced to video */}
+      <audio
+        ref={audioRef}
+        src={video.audio}
+        loop
+        muted
+        preload="auto"
+        style={{ display: 'none' }}
+      />
+
       {/* Play/Pause flash */}
       <div className={`play-icon-overlay ${showIcon ? 'visible' : ''}`}>
         <span>{iconType === 'play' ? '▶' : '⏸'}</span>
@@ -159,10 +207,30 @@ export default function VideoItem({ video, index, isActive, muted, setMuted, set
         <div className="double-like-heart">❤️</div>
       )}
 
-      {/* Mute button */}
+      {/* Mute button — everything happens synchronously inside the click gesture.
+           el.muted + el.volume + el.play() must all be called here, not in useEffect,
+           so the browser's autoplay policy allows audio to start. */}
       <button
         className="mute-btn"
-        onClick={(e) => { e.stopPropagation(); setMuted(m => !m) }}
+        onClick={(e) => {
+          e.stopPropagation()
+          const vid = videoRef.current
+          const aud = audioRef.current
+          const next = !muted
+          // Apply to video element synchronously
+          if (vid) { vid.muted = next; vid.volume = next ? 0 : 1 }
+          // Apply to audio element synchronously inside the gesture window
+          if (aud) {
+            aud.muted = next
+            if (!next) {
+              aud.currentTime = vid ? vid.currentTime : 0
+              aud.play().catch(() => {})
+            } else {
+              aud.pause()
+            }
+          }
+          setMuted(next)
+        }}
         aria-label={muted ? 'Unmute' : 'Mute'}
       >
         {muted ? (
