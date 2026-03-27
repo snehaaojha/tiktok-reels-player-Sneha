@@ -1,13 +1,13 @@
 # TikTok Style Video Player
 
 A responsive TikTok-style vertical video feed built using React.
-This project replicates core reel functionalities such as auto-play, scrolling, likes, and comments.
+This project replicates core reel functionalities such as smooth scrolling, video playback control, and user interactions.
 
 ---
 
 ## Demo Video
 
-https://drive.google.com/file/d/1ROf9c60Lf-hO789HYBZTbMpYcbhRx7oI/view?usp=sharing
+https://drive.google.com/file/d/1v6W5WbCCqGfoeZ6tLKyDen9Dm0HXib5r/view?usp=drive_link
 
 ---
 
@@ -21,21 +21,23 @@ https://drive.google.com/file/d/1ROf9c60Lf-hO789HYBZTbMpYcbhRx7oI/view?usp=shari
 
 ## Features
 
-* Vertical scroll video feed
-* Auto play/pause using IntersectionObserver
-* Like functionality (click and double tap)
-* Comment modal
+* Vertical full-screen video feed (one video per viewport)
+* Smooth scrolling with snap behavior
+* Auto play and pause using IntersectionObserver
+* Like functionality (button and double tap)
+* Comment modal with basic interaction
 * Mute and unmute toggle
-* Expandable caption (Read more)
-* Infinite scrolling
-* Responsive UI
+* Background audio support per video
+* Expandable captions ("Read more")
+* Infinite scrolling loop
+* Responsive layout (mobile-style centered UI)
 
 ---
 
 ## Tech Stack
 
 * React (Vite)
-* JavaScript
+* JavaScript (ES6+)
 * CSS
 
 ---
@@ -51,17 +53,28 @@ npm run dev
 
 ## Approach
 
-* Used IntersectionObserver for detecting the active video
-* Ensured only one video plays at a time
-* Built reusable components for better structure
-* Focused on smooth scrolling and user experience
+* Implemented IntersectionObserver to track the active video and control playback
+* Ensured only one video plays at a time to avoid performance issues
+* Used reusable components such as VideoItem, ActionBar, and VideoFeed
+* Handled browser autoplay restrictions for audio using user interaction
+* Designed UI to mimic real-world short video platforms like TikTok/Reels
+
+---
+
+## Challenges Faced
+
+* Synchronizing audio playback with video due to browser autoplay restrictions
+* Preventing multiple videos from playing simultaneously
+* Handling smooth infinite scrolling without visible jumps
+* Maintaining correct video aspect ratio across different media
 
 ---
 
 ## Limitations
 
-* Uses static video data (no backend integration)
-* Some videos are landscape and adjusted using responsive styling
+* Uses static data (no backend or API integration)
+* Large video files increase repository size
+* Audio is implemented separately for videos without built-in sound
 
 ---
 
